@@ -6,10 +6,11 @@ import { ShoppingCart, Package } from 'lucide-react';
 
 interface ProductGridProps {
   products: Product[];
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (product: Product, quantity?: number, customPrice?: number) => void;
+  onPhotocopyClick: (product: Product) => void;
 }
 
-export const ProductGrid = ({ products, onAddToCart }: ProductGridProps) => {
+export const ProductGrid = ({ products, onAddToCart, onPhotocopyClick }: ProductGridProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -24,7 +25,7 @@ export const ProductGrid = ({ products, onAddToCart }: ProductGridProps) => {
         <Card 
           key={product.id} 
           className="pos-card pos-card-hover cursor-pointer group"
-          onClick={() => onAddToCart(product)}
+          onClick={() => product.isPhotocopy ? onPhotocopyClick(product) : onAddToCart(product)}
         >
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
@@ -40,32 +41,45 @@ export const ProductGrid = ({ products, onAddToCart }: ProductGridProps) => {
               </div>
               <Package className="h-5 w-5 text-muted-foreground" />
             </div>
-            
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-primary">
-                  {formatPrice(product.price)}
+                  {formatPrice(product.sellPrice)}
                 </span>
-                <div className="text-right">
-                  <div className="text-xs text-muted-foreground">Stok</div>
-                  <div className={`font-semibold ${
-                    product.stock <= 5 ? 'text-error' : 'text-success'
-                  }`}>
-                    {product.stock}
+                {!product.isPhotocopy && (
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">Stok</div>
+                    <div className={`font-semibold ${
+                      product.stock <= 5 ? 'text-error' : 'text-success'
+                    }`}>
+                      {product.stock}
+                    </div>
                   </div>
-                </div>
+                )}
+                {product.isPhotocopy && (
+                  <div className="text-right text-xs text-muted-foreground">
+                    <div>Tiered Pricing:</div>
+                    <div>150+ = Rp285</div>
+                    <div>400+ = Rp275</div>
+                    <div>1000+ = Rp260</div>
+                  </div>
+                )}
               </div>
               
-            <Button 
-              className="w-full"
-              disabled={product.stock === 0}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToCart(product);
-              }}
-            >
+              <Button 
+                className="w-full"
+                disabled={product.stock === 0 && !product.isPhotocopy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (product.isPhotocopy) {
+                    onPhotocopyClick(product);
+                  } else {
+                    onAddToCart(product);
+                  }
+                }}
+              >
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                {product.stock === 0 ? 'Stok Habis' : 'Tambah ke Keranjang'}
+                {product.stock === 0 && !product.isPhotocopy ? 'Stok Habis' : product.isPhotocopy ? 'Tambah Fotocopy' : 'Tambah ke Keranjang'}
               </Button>
             </div>
           </CardContent>

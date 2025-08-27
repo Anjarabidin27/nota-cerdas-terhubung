@@ -29,9 +29,11 @@ export const ShoppingCart = ({
     }).format(price);
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const tax = subtotal * 0.1;
-  const total = subtotal + tax;
+  const subtotal = cart.reduce((sum, item) => {
+    const price = item.finalPrice || item.product.sellPrice;
+    return sum + (price * item.quantity);
+  }, 0);
+  const total = subtotal; // No tax
 
   if (cart.length === 0) {
     return (
@@ -66,7 +68,7 @@ export const ShoppingCart = ({
               <div className="flex-1">
                 <h4 className="font-medium text-sm mb-1">{item.product.name}</h4>
                 <div className="text-xs text-muted-foreground mb-2">
-                  {formatPrice(item.product.price)} × {item.quantity}
+                  {formatPrice(item.finalPrice || item.product.sellPrice)} × {item.quantity}
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -111,7 +113,7 @@ export const ShoppingCart = ({
               
               <div className="text-right">
                 <div className="font-semibold text-lg">
-                  {formatPrice(item.product.price * item.quantity)}
+                  {formatPrice((item.finalPrice || item.product.sellPrice) * item.quantity)}
                 </div>
               </div>
             </div>
@@ -124,10 +126,6 @@ export const ShoppingCart = ({
           <div className="flex justify-between text-sm">
             <span>Subtotal</span>
             <span>{formatPrice(subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Pajak (10%)</span>
-            <span>{formatPrice(tax)}</span>
           </div>
           <Separator />
           <div className="flex justify-between text-lg font-bold">

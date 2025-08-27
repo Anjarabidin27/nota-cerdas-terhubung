@@ -64,11 +64,11 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                 <div className="flex-1">
                   <div className="font-medium">{item.product.name}</div>
                   <div className="text-muted-foreground">
-                    {formatPrice(item.product.price)} × {item.quantity}
+                    {formatPrice(item.finalPrice || item.product.sellPrice)} × {item.quantity}
                   </div>
                 </div>
                 <div className="font-medium">
-                  {formatPrice(item.product.price * item.quantity)}
+                  {formatPrice((item.finalPrice || item.product.sellPrice) * item.quantity)}
                 </div>
               </div>
             ))}
@@ -80,10 +80,6 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span>{formatPrice(receipt.subtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Pajak (10%)</span>
-              <span>{formatPrice(receipt.tax)}</span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">
@@ -118,10 +114,11 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             onClick={() => {
               const receiptData = `data:text/plain;charset=utf-8,${encodeURIComponent(
                 `TOKO SERBAGUNA\n${receipt.id}\n${formatDate(receipt.timestamp)}\n\n${
-                  receipt.items.map(item => 
-                    `${item.product.name}\n${formatPrice(item.product.price)} × ${item.quantity} = ${formatPrice(item.product.price * item.quantity)}`
-                  ).join('\n\n')
-                }\n\nSubtotal: ${formatPrice(receipt.subtotal)}\nPajak: ${formatPrice(receipt.tax)}\nTOTAL: ${formatPrice(receipt.total)}`
+                  receipt.items.map(item => {
+                    const price = item.finalPrice || item.product.sellPrice;
+                    return `${item.product.name}\n${formatPrice(price)} × ${item.quantity} = ${formatPrice(price * item.quantity)}`;
+                  }).join('\n\n')
+                }\n\nSubtotal: ${formatPrice(receipt.subtotal)}\nTOTAL: ${formatPrice(receipt.total)}`
               )}`;
               const link = document.createElement('a');
               link.href = receiptData;

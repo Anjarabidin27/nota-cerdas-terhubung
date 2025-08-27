@@ -15,33 +15,39 @@ interface AddProductFormProps {
 export const AddProductForm = ({ onAddProduct, onClose }: AddProductFormProps) => {
   const [formData, setFormData] = useState({
     name: '',
-    price: '',
+    costPrice: '',
+    sellPrice: '',
     stock: '',
     category: '',
     barcode: '',
+    isPhotocopy: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !formData.stock) {
+    if (!formData.name || !formData.sellPrice || !formData.costPrice || (!formData.stock && !formData.isPhotocopy)) {
       return;
     }
 
     onAddProduct({
       name: formData.name,
-      price: parseFloat(formData.price),
-      stock: parseInt(formData.stock),
+      costPrice: parseFloat(formData.costPrice),
+      sellPrice: parseFloat(formData.sellPrice),
+      stock: formData.isPhotocopy ? 0 : parseInt(formData.stock),
       category: formData.category || undefined,
       barcode: formData.barcode || undefined,
+      isPhotocopy: formData.isPhotocopy,
     });
 
     setFormData({
       name: '',
-      price: '',
+      costPrice: '',
+      sellPrice: '',
       stock: '',
       category: '',
       barcode: '',
+      isPhotocopy: false,
     });
     
     onClose();
@@ -75,21 +81,35 @@ export const AddProductForm = ({ onAddProduct, onClose }: AddProductFormProps) =
             </div>
             
             <div>
-              <Label htmlFor="price">Harga *</Label>
+              <Label htmlFor="costPrice">Harga Kulakan *</Label>
               <Input
-                id="price"
+                id="costPrice"
                 type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                value={formData.costPrice}
+                onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
                 placeholder="0"
                 min="0"
-                step="500"
+                step="100"
                 required
               />
             </div>
             
             <div>
-              <Label htmlFor="stock">Stok *</Label>
+              <Label htmlFor="sellPrice">Harga Jual *</Label>
+              <Input
+                id="sellPrice"
+                type="number"
+                value={formData.sellPrice}
+                onChange={(e) => setFormData({ ...formData, sellPrice: e.target.value })}
+                placeholder="0"
+                min="0"
+                step="100"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="stock">Stok {formData.isPhotocopy ? '(Opsional untuk layanan)' : '*'}</Label>
               <Input
                 id="stock"
                 type="number"
@@ -97,7 +117,7 @@ export const AddProductForm = ({ onAddProduct, onClose }: AddProductFormProps) =
                 onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                 placeholder="0"
                 min="0"
-                required
+                required={!formData.isPhotocopy}
               />
             </div>
             
@@ -111,13 +131,28 @@ export const AddProductForm = ({ onAddProduct, onClose }: AddProductFormProps) =
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Makanan">Makanan</SelectItem>
-                  <SelectItem value="Minuman">Minuman</SelectItem>
-                  <SelectItem value="Snack">Snack</SelectItem>
-                  <SelectItem value="Elektronik">Elektronik</SelectItem>
+                  <SelectItem value="Fotocopy">Fotocopy</SelectItem>
+                  <SelectItem value="Alat Tulis">Alat Tulis</SelectItem>
+                  <SelectItem value="Kertas">Kertas</SelectItem>
+                  <SelectItem value="ATK">ATK</SelectItem>
+                  <SelectItem value="Laminasi">Laminasi</SelectItem>
+                  <SelectItem value="Jilid">Jilid</SelectItem>
                   <SelectItem value="Lainnya">Lainnya</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isPhotocopy"
+                checked={formData.isPhotocopy}
+                onChange={(e) => setFormData({ ...formData, isPhotocopy: e.target.checked })}
+                className="rounded border border-input"
+              />
+              <Label htmlFor="isPhotocopy" className="text-sm">
+                Layanan Fotocopy (Tiered Pricing)
+              </Label>
             </div>
             
             <div className="md:col-span-2">

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { usePOS } from '@/hooks/usePOS';
-import { Receipt as ReceiptType } from '@/types/pos';
+import { Receipt as ReceiptType, Product } from '@/types/pos';
 import { ProductGrid } from './ProductGrid';
 import { ShoppingCart } from './ShoppingCart';
 import { Receipt } from './Receipt';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PhotocopyDialog } from './PhotocopyDialog';
 import { 
   Store, 
   Package, 
@@ -37,6 +38,8 @@ export const POSInterface = () => {
   const [currentReceipt, setCurrentReceipt] = useState<ReceiptType | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [photocopyProduct, setPhotocopyProduct] = useState<Product | null>(null);
+  const [showPhotocopyDialog, setShowPhotocopyDialog] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const handleProcessTransaction = () => {
@@ -44,6 +47,11 @@ export const POSInterface = () => {
     if (receipt) {
       setCurrentReceipt(receipt);
     }
+  };
+
+  const handlePhotocopyClick = (product: Product) => {
+    setPhotocopyProduct(product);
+    setShowPhotocopyDialog(true);
   };
 
   const handlePrint = () => {
@@ -55,9 +63,10 @@ export const POSInterface = () => {
     product.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalValue = products.reduce((sum, product) => sum + (product.price * product.stock), 0);
+  const totalValue = products.reduce((sum, product) => sum + (product.sellPrice * product.stock), 0);
   const totalProducts = products.length;
   const lowStockProducts = products.filter(product => product.stock <= 5).length;
+  
   const todayRevenue = receipts
     .filter(receipt => {
       const today = new Date();
@@ -65,6 +74,14 @@ export const POSInterface = () => {
       return receiptDate.toDateString() === today.toDateString();
     })
     .reduce((sum, receipt) => sum + receipt.total, 0);
+    
+  const todayProfit = receipts
+    .filter(receipt => {
+      const today = new Date();
+      const receiptDate = new Date(receipt.timestamp);
+      return receiptDate.toDateString() === today.toDateString();
+    })
+    .reduce((sum, receipt) => sum + receipt.profit, 0);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -139,20 +156,22 @@ export const POSInterface = () => {
           
           <Card className="pos-card">
             <CardContent className="flex items-center p-4">
-              <Package className="h-8 w-8 text-primary mr-3" />
+              <TrendingUp className="h-8 w-8 text-primary mr-3" />
               <div>
-                <div className="text-2xl font-bold">{totalProducts}</div>
-                <div className="text-sm text-muted-foreground">Total Produk</div>
+                <div className="text-2xl font-bold text-primary">
+                  {formatPrice(todayProfit)}
+                </div>
+                <div className="text-sm text-muted-foreground">Keuntungan Hari Ini</div>
               </div>
             </CardContent>
           </Card>
           
           <Card className="pos-card">
             <CardContent className="flex items-center p-4">
-              <TrendingUp className="h-8 w-8 text-warning mr-3" />
+              <Package className="h-8 w-8 text-warning mr-3" />
               <div>
-                <div className="text-2xl font-bold">{formatPrice(totalValue)}</div>
-                <div className="text-sm text-muted-foreground">Nilai Inventory</div>
+                <div className="text-2xl font-bold">{totalProducts}</div>
+                <div className="text-sm text-muted-foreground">Total Produk</div>
               </div>
             </CardContent>
           </Card>
@@ -210,6 +229,7 @@ export const POSInterface = () => {
                     <ProductGrid 
                       products={filteredProducts}
                       onAddToCart={addToCart}
+                      onPhotocopyClick={handlePhotocopyClick}
                     />
                   </CardContent>
                 </Card>
@@ -273,6 +293,19 @@ export const POSInterface = () => {
             )}
           </div>
         </div>
+
+        {/* Photocopy Dialog */}
+        {photocopyProduct && (
+          <PhotocopyDialog
+            isOpen={showPhotocopyDialog}
+            onClose={() => {
+              setShowPhotocopyDialog(false);
+              setPhotocopyProduct(null);
+            }}
+            product={photocopyProduct}
+            onAddToCart={addToCart}
+          />
+        )}
       </div>
     </div>
   );
