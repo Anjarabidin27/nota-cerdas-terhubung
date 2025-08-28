@@ -19,7 +19,8 @@ export interface Receipt {
   id: string;
   items: CartItem[];
   subtotal: number;
-  total: number; // No tax
+  discount: number; // Discount amount
+  total: number; // After discount, no tax
   profit: number; // Total profit from this transaction
   timestamp: Date;
   paymentMethod?: string;

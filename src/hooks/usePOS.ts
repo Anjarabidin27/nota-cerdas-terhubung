@@ -194,7 +194,7 @@ export const usePOS = () => {
     }));
   }, []);
 
-  const processTransaction = useCallback((paymentMethod: string = 'cash') => {
+  const processTransaction = useCallback((paymentMethod: string = 'cash', discount: number = 0) => {
     const { cart, products } = posState;
     
     if (cart.length === 0) {
@@ -211,7 +211,7 @@ export const usePOS = () => {
       return sum + (price * item.quantity);
     }, 0);
     
-    const total = subtotal; // No tax
+    const total = subtotal - discount; // Apply discount, no tax
 
     // Calculate profit
     const profit = cart.reduce((sum, item) => {
@@ -224,6 +224,7 @@ export const usePOS = () => {
       id: `INV-${Date.now()}`,
       items: [...cart],
       subtotal,
+      discount,
       total,
       profit,
       timestamp: new Date(),

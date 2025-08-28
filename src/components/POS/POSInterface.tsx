@@ -1,16 +1,17 @@
-import { useState, useRef } from 'react';
-import { usePOS } from '@/hooks/usePOS';
-import { Receipt as ReceiptType, Product } from '@/types/pos';
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductGrid } from './ProductGrid';
 import { ShoppingCart } from './ShoppingCart';
 import { Receipt } from './Receipt';
 import { AddProductForm } from './AddProductForm';
+import { SalesReport } from './SalesReport';
+import { PhotocopyDialog } from './PhotocopyDialog';
+import { usePOS } from '@/hooks/usePOS';
+import { Receipt as ReceiptType, Product } from '@/types/pos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PhotocopyDialog } from './PhotocopyDialog';
 import { 
   Store, 
   Package, 
@@ -19,7 +20,8 @@ import {
   Search,
   TrendingUp,
   Users,
-  DollarSign 
+  DollarSign,
+  BarChart3
 } from 'lucide-react';
 
 export const POSInterface = () => {
@@ -33,20 +35,20 @@ export const POSInterface = () => {
     removeFromCart,
     clearCart,
     processTransaction,
+    formatPrice,
   } = usePOS();
 
-  const [currentReceipt, setCurrentReceipt] = useState<ReceiptType | null>(null);
-  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [lastReceipt, setLastReceipt] = useState<ReceiptType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [photocopyProduct, setPhotocopyProduct] = useState<Product | null>(null);
   const [showPhotocopyDialog, setShowPhotocopyDialog] = useState(false);
-  const receiptRef = useRef<HTMLDivElement>(null);
 
-  const handleProcessTransaction = () => {
-    const receipt = processTransaction();
+  const handleProcessTransaction = (paymentMethod?: string, discount?: number) => {
+    const receipt = processTransaction(paymentMethod, discount);
     if (receipt) {
-      setCurrentReceipt(receipt);
+      setLastReceipt(receipt);
     }
+    return receipt;
   };
 
   const handlePhotocopyClick = (product: Product) => {
@@ -54,18 +56,13 @@ export const POSInterface = () => {
     setShowPhotocopyDialog(true);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalValue = products.reduce((sum, product) => sum + (product.sellPrice * product.stock), 0);
   const totalProducts = products.length;
-  const lowStockProducts = products.filter(product => product.stock <= 5).length;
+  const lowStockProducts = products.filter(product => product.stock <= 5 && !product.isPhotocopy).length;
   
   const todayRevenue = receipts
     .filter(receipt => {
@@ -83,34 +80,6 @@ export const POSInterface = () => {
     })
     .reduce((sum, receipt) => sum + receipt.profit, 0);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
-
-  if (currentReceipt) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">Struk Penjualan</h1>
-            <Button variant="outline" onClick={() => setCurrentReceipt(null)}>
-              Kembali ke POS
-            </Button>
-          </div>
-          <Receipt 
-            receipt={currentReceipt} 
-            onPrint={handlePrint}
-            ref={receiptRef}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -120,7 +89,7 @@ export const POSInterface = () => {
             <div className="flex items-center gap-3">
               <Store className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-2xl font-bold">Kasir Toko Serbaguna</h1>
+                <h1 className="text-2xl font-bold">Kasir Fotocopy & ATK</h1>
                 <p className="text-sm text-muted-foreground">
                   Sistem Point of Sale Professional
                 </p>
@@ -187,23 +156,18 @@ export const POSInterface = () => {
           </Card>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Products Section */}
-          <div className="lg:col-span-2 space-y-4">
-            <Tabs defaultValue="products" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="products" className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Produk
-                </TabsTrigger>
-                <TabsTrigger value="add-product" className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Tambah Produk
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="products" className="space-y-4">
+        <Tabs defaultValue="pos" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="pos">Kasir</TabsTrigger>
+            <TabsTrigger value="products">Produk</TabsTrigger>
+            <TabsTrigger value="add-product">Tambah Produk</TabsTrigger>
+            <TabsTrigger value="receipt">Nota Terakhir</TabsTrigger>
+            <TabsTrigger value="reports">Laporan</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pos" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
                 <Card className="pos-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center justify-between">
@@ -233,66 +197,107 @@ export const POSInterface = () => {
                     />
                   </CardContent>
                 </Card>
-              </TabsContent>
-              
-              <TabsContent value="add-product">
-                <AddProductForm 
-                  onAddProduct={addProduct}
-                  onClose={() => setShowAddProduct(false)}
+              </div>
+
+              <div className="space-y-4">
+                <ShoppingCart
+                  cart={cart}
+                  updateCartQuantity={updateCartQuantity}
+                  removeFromCart={removeFromCart}
+                  clearCart={clearCart}
+                  processTransaction={handleProcessTransaction}
+                  formatPrice={formatPrice}
                 />
-              </TabsContent>
-            </Tabs>
-          </div>
 
-          {/* Shopping Cart Section */}
-          <div className="space-y-4">
-            <ShoppingCart
-              cart={cart}
-              onUpdateQuantity={updateCartQuantity}
-              onRemoveItem={removeFromCart}
-              onClearCart={clearCart}
-              onProcessTransaction={handleProcessTransaction}
-            />
-
-            {/* Recent Transactions */}
-            {receipts.length > 0 && (
-              <Card className="pos-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <ReceiptIcon className="h-5 w-5" />
-                    Transaksi Terakhir
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {receipts.slice(-5).reverse().map((receipt) => (
-                      <div 
-                        key={receipt.id}
-                        className="flex items-center justify-between p-2 bg-secondary/50 rounded border cursor-pointer hover:bg-secondary/70 transition-colors"
-                        onClick={() => setCurrentReceipt(receipt)}
-                      >
-                        <div>
-                          <div className="font-medium text-sm">{receipt.id}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {receipt.items.length} item
+                {receipts.length > 0 && (
+                  <Card className="pos-card">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <ReceiptIcon className="h-5 w-5" />
+                        Transaksi Terakhir
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {receipts.slice(-5).reverse().map((receipt) => (
+                          <div 
+                            key={receipt.id}
+                            className="flex items-center justify-between p-2 bg-secondary/50 rounded border"
+                          >
+                            <div>
+                              <div className="font-medium text-sm">{receipt.id}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {receipt.items.length} item
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-sm">
+                                {formatPrice(receipt.total)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(receipt.timestamp).toLocaleTimeString('id-ID')}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-sm">
-                            {formatPrice(receipt.total)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(receipt.timestamp).toLocaleTimeString('id-ID')}
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="products" className="space-y-4">
+            <Card className="pos-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Daftar Produk
                   </div>
-                </CardContent>
-              </Card>
+                  <Badge variant="secondary">{filteredProducts.length} produk</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari produk..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <ProductGrid 
+                  products={filteredProducts}
+                  onAddToCart={addToCart}
+                  onPhotocopyClick={handlePhotocopyClick}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="add-product" className="space-y-4">
+            <AddProductForm onAddProduct={addProduct} onClose={() => {}} />
+          </TabsContent>
+
+          <TabsContent value="receipt" className="space-y-4">
+            {lastReceipt ? (
+              <Receipt receipt={lastReceipt} formatPrice={formatPrice} />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Belum ada transaksi hari ini</p>
+              </div>
             )}
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <SalesReport receipts={receipts} formatPrice={formatPrice} />
+          </TabsContent>
+        </Tabs>
 
         {/* Photocopy Dialog */}
         {photocopyProduct && (
