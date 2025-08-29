@@ -133,10 +133,8 @@ export const AddProductForm = ({ onAddProduct, onClose }: AddProductFormProps) =
                 <SelectContent>
                   <SelectItem value="Fotocopy">Fotocopy</SelectItem>
                   <SelectItem value="Alat Tulis">Alat Tulis</SelectItem>
-                  <SelectItem value="Kertas">Kertas</SelectItem>
                   <SelectItem value="ATK">ATK</SelectItem>
-                  <SelectItem value="Laminasi">Laminasi</SelectItem>
-                  <SelectItem value="Jilid">Jilid</SelectItem>
+                  <SelectItem value="Laminasi">Pramuka</SelectItem>
                   <SelectItem value="Lainnya">Lainnya</SelectItem>
                 </SelectContent>
               </Select>

@@ -24,8 +24,8 @@ export const Receipt = ({ receipt, formatPrice }: ReceiptProps) => {
     const printContent = `
       <div style="font-family: monospace; max-width: 300px; margin: 0 auto;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <h2>TOKO FOTOCOPY & ATK</h2>
-          <p>Jl. Raya No. 123, Kota Jakarta</p>
+          <h2>TOKO ANJAR FOTOCOPY & ATK</h2>
+          <p>Jl. Raya Gajah - dempet (Depan Koramil Gajah)</p>
           <p>Telp: (021) 1234-5678</p>
         </div>
         
@@ -100,12 +100,12 @@ export const Receipt = ({ receipt, formatPrice }: ReceiptProps) => {
   return (
     <Card className="pos-card max-w-md mx-auto">
       <CardHeader className="text-center pb-4">
-        <h2 className="text-xl font-bold">Toko Fotocopy & ATK</h2>
+        <h2 className="text-xl font-bold">Toko Anjar Fotocopy & ATK</h2>
         <p className="text-sm text-muted-foreground">
-          Jl. Raya No. 123, Kota Jakarta
+          Jl. Raya Gajah - Dempet (depan Koramil Gajah)
         </p>
         <p className="text-sm text-muted-foreground">
-          Telp: (021) 1234-5678
+          Telp/WA : 0895630183347
         </p>
       </CardHeader>
 
@@ -162,7 +162,7 @@ export const Receipt = ({ receipt, formatPrice }: ReceiptProps) => {
 
         <div className="text-center text-sm text-muted-foreground">
           <p>Terima kasih atas kunjungan Anda!</p>
-          <p>Barang yang sudah dibeli tidak dapat dikembalikan</p>
+          <p>Semoga Hari Anda Menyenangkan</p>
           <p className="mt-2 font-mono">
             Kasir: Admin | {receipt.paymentMethod?.toUpperCase() || 'CASH'}
           </p>
@@ -183,7 +183,7 @@ export const Receipt = ({ receipt, formatPrice }: ReceiptProps) => {
           className="w-full"
           onClick={() => {
             const receiptData = `data:text/plain;charset=utf-8,${encodeURIComponent(
-              `TOKO FOTOCOPY & ATK\n${receipt.id}\n${formatDate(receipt.timestamp)}\n\n${
+              `TOKO ANJAR FOTOCOPY & ATK\n${receipt.id}\n${formatDate(receipt.timestamp)}\n\n${
                 receipt.items.map(item => {
                   const price = item.finalPrice || item.product.sellPrice;
                   return `${item.product.name}\n${formatPrice(price)} × ${item.quantity} = ${formatPrice(price * item.quantity)}`;

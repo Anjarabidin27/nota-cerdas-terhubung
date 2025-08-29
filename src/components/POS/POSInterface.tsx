@@ -169,9 +169,9 @@ Profit: ${formatPrice(receipt.profit)}
             <div className="flex items-center gap-3">
               <Store className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-2xl font-bold">Kasir Fotocopy & ATK</h1>
+                <h1 className="text-2xl font-bold">Kasir Toko Anjar </h1>
                 <p className="text-sm text-muted-foreground">
-                  Sistem Point of Sale Professional
+                  Jalan Gajah - Dempet (Depan Koramil)
                 </p>
               </div>
             </div>
