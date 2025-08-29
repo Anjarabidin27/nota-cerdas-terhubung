@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Package, 
   Search,
@@ -11,6 +12,8 @@ import {
   Minus
 } from 'lucide-react';
 import { Product } from '@/types/pos';
+import { getUnitOptions } from '@/lib/units';
+import { QuantitySelector } from './QuantitySelector';
 
 interface StockManagementProps {
   products: Product[];
@@ -38,11 +41,29 @@ export const StockManagement = ({
     return matchesSearch;
   });
 
+  const [stockInputs, setStockInputs] = useState<Record<string, number>>({});
+  const [selectedUnits, setSelectedUnits] = useState<Record<string, string>>({});
+
   const handleStockUpdate = (productId: string, change: number) => {
     const product = products.find(p => p.id === productId);
     if (product) {
       const newStock = Math.max(0, product.stock + change);
       onUpdateProduct(productId, { stock: newStock });
+    }
+  };
+
+  const handleBulkStockAdd = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      const quantity = stockInputs[productId] || 1;
+      const unit = selectedUnits[productId] || 'pcs';
+      const unitOptions = getUnitOptions(product.name);
+      const multiplier = unitOptions.find(opt => opt.value === unit)?.multiplier || 1;
+      const totalQuantity = quantity * multiplier;
+      
+      onUpdateProduct(productId, { stock: product.stock + totalQuantity });
+      setStockInputs({ ...stockInputs, [productId]: 1 });
+      setSelectedUnits({ ...selectedUnits, [productId]: 'pcs' });
     }
   };
 
@@ -163,6 +184,50 @@ export const StockManagement = ({
                   </div>
                 )}
               </div>
+
+              {!product.isPhotocopy && (
+                <div className="mt-3 p-3 bg-muted/50 rounded border">
+                  <div className="text-xs font-medium mb-2">Tambah Stok:</div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={stockInputs[product.id] || 1}
+                      onChange={(e) => setStockInputs({
+                        ...stockInputs,
+                        [product.id]: parseInt(e.target.value) || 1
+                      })}
+                      className="h-8 w-16 text-center text-sm"
+                      min="1"
+                    />
+                    <Select
+                      value={selectedUnits[product.id] || 'pcs'}
+                      onValueChange={(value) => setSelectedUnits({
+                        ...selectedUnits,
+                        [product.id]: value
+                      })}
+                    >
+                      <SelectTrigger className="h-8 w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getUnitOptions(product.name).map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label.split(' ')[0]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      onClick={() => handleBulkStockAdd(product.id)}
+                      className="h-8 px-3"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Tambah
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {product.stock <= 5 && !product.isPhotocopy && (
                 <div className="mt-2 p-2 bg-warning/10 rounded border border-warning/20">

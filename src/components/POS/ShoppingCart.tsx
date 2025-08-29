@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CartItem, Receipt as ReceiptType } from '@/types/pos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart as CartIcon, Minus, Plus, Trash2, CreditCard, Percent, Printer } from 'lucide-react';
+import { ShoppingCart as CartIcon, Trash2, CreditCard, Percent, Printer, Edit } from 'lucide-react';
+import { QuantitySelector } from './QuantitySelector';
 
 interface ShoppingCartProps {
   cart: CartItem[];
@@ -31,6 +32,27 @@ export const ShoppingCart = ({
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
+  const [editingPrice, setEditingPrice] = useState<string | null>(null);
+
+  // Handle Enter key for auto-print
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && cart.length > 0) {
+        e.preventDefault();
+        handleCheckoutAndPrint();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [cart.length]);
+
+  const handlePriceChange = (productId: string, newPrice: number) => {
+    const item = cart.find(item => item.product.id === productId);
+    if (item) {
+      updateCartQuantity(productId, item.quantity, newPrice);
+    }
+  };
 
   const subtotal = cart.reduce((sum, item) => {
     const price = item.finalPrice || item.product.sellPrice;
@@ -93,47 +115,39 @@ export const ShoppingCart = ({
           {cart.map((item, index) => (
             <div key={`${item.product.id}-${item.finalPrice || 'default'}-${index}`} className="pos-cart-item">
               <div className="flex-1">
-                <h4 className="font-medium text-sm mb-1">{item.product.name}</h4>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="font-medium text-sm">{item.product.name}</h4>
+                  {item.quantity >= 12 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0"
+                      onClick={() => setEditingPrice(editingPrice === item.product.id ? null : item.product.id)}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                
                 <div className="text-xs text-muted-foreground mb-2">
                   {formatPrice(item.finalPrice || item.product.sellPrice)} × {item.quantity}
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    onClick={() => updateCartQuantity(item.product.id, item.quantity - 1, item.finalPrice)}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  
-                  <Input
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) => updateCartQuantity(item.product.id, parseInt(e.target.value) || 1, item.finalPrice)}
-                    className="h-8 w-16 text-center text-sm"
-                    min="1"
-                  />
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    onClick={() => updateCartQuantity(item.product.id, item.quantity + 1, item.finalPrice)}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0 ml-auto text-error hover:bg-error hover:text-error-foreground"
-                    onClick={() => removeFromCart(item.product.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
+                <QuantitySelector
+                  quantity={item.quantity}
+                  productName={item.product.name}
+                  onQuantityChange={(quantity) => {
+                    if (quantity === 0) {
+                      removeFromCart(item.product.id);
+                    } else {
+                      updateCartQuantity(item.product.id, quantity, item.finalPrice);
+                    }
+                  }}
+                  onRemove={() => removeFromCart(item.product.id)}
+                  allowBulkPricing={true}
+                  currentPrice={item.finalPrice || item.product.sellPrice}
+                  onPriceChange={(price) => handlePriceChange(item.product.id, price)}
+                />
               </div>
               
               <div className="text-right">
