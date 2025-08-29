@@ -6,6 +6,7 @@ import { Receipt } from './Receipt';
 import { AddProductForm } from './AddProductForm';
 import { SalesReport } from './SalesReport';
 import { PhotocopyDialog } from './PhotocopyDialog';
+import { StockManagement } from './StockManagement';
 import { usePOS } from '@/hooks/usePOS';
 import { Receipt as ReceiptType, Product } from '@/types/pos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +31,7 @@ export const POSInterface = () => {
     cart,
     receipts,
     addProduct,
+    updateProduct,
     addToCart,
     updateCartQuantity,
     removeFromCart,
@@ -64,10 +66,10 @@ export const POSInterface = () => {
         setCurrentTab('reports');
         break;
       case 'products':
-        setCurrentTab('products');
+        setCurrentTab('stock-management');
         break;
       case 'stock':
-        setCurrentTab('products');
+        setCurrentTab('low-stock');
         break;
     }
   };
@@ -235,10 +237,11 @@ Profit: ${formatPrice(receipt.profit)}
         </div>
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="pos">Kasir</TabsTrigger>
-            <TabsTrigger value="products">Produk</TabsTrigger>
             <TabsTrigger value="add-product">Tambah Produk</TabsTrigger>
+            <TabsTrigger value="stock-management">Manajemen Stok</TabsTrigger>
+            <TabsTrigger value="low-stock">Stok Menipis</TabsTrigger>
             <TabsTrigger value="receipt">Nota Terakhir</TabsTrigger>
             <TabsTrigger value="reports">Laporan</TabsTrigger>
           </TabsList>
@@ -327,36 +330,22 @@ Profit: ${formatPrice(receipt.profit)}
             </div>
           </TabsContent>
 
-          <TabsContent value="products" className="space-y-4">
-            <Card className="pos-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Daftar Produk
-                  </div>
-                  <Badge variant="secondary">{filteredProducts.length} produk</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Cari produk..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-                <ProductGrid 
-                  products={filteredProducts}
-                  onAddToCart={addToCart}
-                  onPhotocopyClick={handlePhotocopyClick}
-                />
-              </CardContent>
-            </Card>
+          <TabsContent value="stock-management" className="space-y-4">
+            <StockManagement 
+              products={products}
+              onUpdateProduct={updateProduct}
+              formatPrice={formatPrice}
+              showLowStockOnly={false}
+            />
+          </TabsContent>
+
+          <TabsContent value="low-stock" className="space-y-4">
+            <StockManagement 
+              products={products}
+              onUpdateProduct={updateProduct}
+              formatPrice={formatPrice}
+              showLowStockOnly={true}
+            />
           </TabsContent>
 
           <TabsContent value="add-product" className="space-y-4">
