@@ -42,6 +42,7 @@ export const POSInterface = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [photocopyProduct, setPhotocopyProduct] = useState<Product | null>(null);
   const [showPhotocopyDialog, setShowPhotocopyDialog] = useState(false);
+  const [currentTab, setCurrentTab] = useState('pos');
 
   const handleProcessTransaction = (paymentMethod?: string, discount?: number) => {
     const receipt = processTransaction(paymentMethod, discount);
@@ -54,6 +55,83 @@ export const POSInterface = () => {
   const handlePhotocopyClick = (product: Product) => {
     setPhotocopyProduct(product);
     setShowPhotocopyDialog(true);
+  };
+
+  const handleDashboardClick = (section: string) => {
+    switch (section) {
+      case 'revenue':
+      case 'profit':
+        setCurrentTab('reports');
+        break;
+      case 'products':
+        setCurrentTab('products');
+        break;
+      case 'stock':
+        setCurrentTab('products');
+        break;
+    }
+  };
+
+  const handlePrintThermal = (receipt: ReceiptType) => {
+    // Thermal printing implementation
+    const printContent = `
+===============================
+   KASIR FOTOCOPY & ATK
+===============================
+Invoice: ${receipt.id}
+Tanggal: ${new Date(receipt.timestamp).toLocaleDateString('id-ID')}
+Waktu: ${new Date(receipt.timestamp).toLocaleTimeString('id-ID')}
+-------------------------------
+
+${receipt.items.map(item => `
+${item.product.name}
+${item.quantity} x ${formatPrice(item.finalPrice || item.product.sellPrice)}
+${' '.repeat(31 - (item.quantity + ' x ' + formatPrice(item.finalPrice || item.product.sellPrice)).length)}${formatPrice((item.finalPrice || item.product.sellPrice) * item.quantity)}
+`).join('')}
+
+-------------------------------
+Subtotal: ${' '.repeat(20)}${formatPrice(receipt.subtotal)}${receipt.discount > 0 ? `
+Diskon: ${' '.repeat(22)}${formatPrice(receipt.discount)}` : ''}
+TOTAL: ${' '.repeat(23)}${formatPrice(receipt.total)}
+
+Metode: ${receipt.paymentMethod.toUpperCase()}
+Profit: ${formatPrice(receipt.profit)}
+
+===============================
+    TERIMA KASIH ATAS
+    KUNJUNGAN ANDA!
+===============================
+`;
+
+    // Create a new window for thermal printing
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Receipt</title>
+            <style>
+              body {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                line-height: 1.2;
+                margin: 0;
+                padding: 10px;
+                white-space: pre-line;
+              }
+              @media print {
+                body { margin: 0; }
+              }
+            </style>
+          </head>
+          <body>${printContent}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
   };
 
   const filteredProducts = products.filter(product =>
@@ -111,7 +189,7 @@ export const POSInterface = () => {
       {/* Dashboard Stats */}
       <div className="max-w-7xl mx-auto p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="pos-card">
+          <Card className="pos-card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleDashboardClick('revenue')}>
             <CardContent className="flex items-center p-4">
               <DollarSign className="h-8 w-8 text-success mr-3" />
               <div>
@@ -123,7 +201,7 @@ export const POSInterface = () => {
             </CardContent>
           </Card>
           
-          <Card className="pos-card">
+          <Card className="pos-card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleDashboardClick('profit')}>
             <CardContent className="flex items-center p-4">
               <TrendingUp className="h-8 w-8 text-primary mr-3" />
               <div>
@@ -135,7 +213,7 @@ export const POSInterface = () => {
             </CardContent>
           </Card>
           
-          <Card className="pos-card">
+          <Card className="pos-card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleDashboardClick('products')}>
             <CardContent className="flex items-center p-4">
               <Package className="h-8 w-8 text-warning mr-3" />
               <div>
@@ -145,7 +223,7 @@ export const POSInterface = () => {
             </CardContent>
           </Card>
           
-          <Card className="pos-card">
+          <Card className="pos-card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleDashboardClick('stock')}>
             <CardContent className="flex items-center p-4">
               <Users className="h-8 w-8 text-error mr-3" />
               <div>
@@ -156,7 +234,7 @@ export const POSInterface = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="pos" className="w-full">
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="pos">Kasir</TabsTrigger>
             <TabsTrigger value="products">Produk</TabsTrigger>
@@ -207,6 +285,7 @@ export const POSInterface = () => {
                   clearCart={clearCart}
                   processTransaction={handleProcessTransaction}
                   formatPrice={formatPrice}
+                  onPrintThermal={handlePrintThermal}
                 />
 
                 {receipts.length > 0 && (

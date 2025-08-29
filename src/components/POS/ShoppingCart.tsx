@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CartItem } from '@/types/pos';
+import { CartItem, Receipt as ReceiptType } from '@/types/pos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,15 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart as CartIcon, Minus, Plus, Trash2, CreditCard, Percent } from 'lucide-react';
+import { ShoppingCart as CartIcon, Minus, Plus, Trash2, CreditCard, Percent, Printer } from 'lucide-react';
 
 interface ShoppingCartProps {
   cart: CartItem[];
   updateCartQuantity: (productId: string, quantity: number, finalPrice?: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
-  processTransaction: (paymentMethod?: string, discount?: number) => any;
+  processTransaction: (paymentMethod?: string, discount?: number) => ReceiptType | null;
   formatPrice: (price: number) => string;
+  onPrintThermal: (receipt: ReceiptType) => void;
 }
 
 export const ShoppingCart = ({
@@ -24,7 +25,8 @@ export const ShoppingCart = ({
   removeFromCart,
   clearCart,
   processTransaction,
-  formatPrice
+  formatPrice,
+  onPrintThermal
 }: ShoppingCartProps) => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [discount, setDiscount] = useState(0);
@@ -41,9 +43,19 @@ export const ShoppingCart = ({
     
   const total = Math.max(0, subtotal - discountAmount);
 
-  const handleProcessTransaction = () => {
+  const handleCheckout = () => {
     const receipt = processTransaction(paymentMethod, discountAmount);
     if (receipt) {
+      setPaymentMethod('cash');
+      setDiscount(0);
+      setDiscountType('amount');
+    }
+  };
+
+  const handleCheckoutAndPrint = () => {
+    const receipt = processTransaction(paymentMethod, discountAmount);
+    if (receipt) {
+      onPrintThermal(receipt);
       setPaymentMethod('cash');
       setDiscount(0);
       setDiscountType('amount');
@@ -199,10 +211,19 @@ export const ShoppingCart = ({
           <Button 
             className="w-full"
             variant="success"
-            onClick={handleProcessTransaction}
+            onClick={handleCheckout}
           >
             <CreditCard className="w-4 h-4 mr-2" />
-            Proses Pembayaran
+            Checkout
+          </Button>
+          
+          <Button 
+            className="w-full"
+            variant="default"
+            onClick={handleCheckoutAndPrint}
+          >
+            <Printer className="w-4 h-4 mr-2" />
+            Print Nota
           </Button>
           
           <Button 
