@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, X } from 'lucide-react';
 import { Product } from '@/types/pos';
 import { QuantitySelector } from './QuantitySelector';
+import { toast } from 'sonner';
 
 interface AddProductFormProps {
   onAddProduct: (product: Omit<Product, 'id'>) => void;
@@ -41,10 +42,21 @@ export const AddProductForm = ({ onAddProduct, onUpdateProduct, products, onClos
     );
 
     if (existingProduct) {
-      // Update existing product stock
-      onUpdateProduct(existingProduct.id, {
+      // Update existing product - only add stock, prices are optional
+      const updates: Partial<Product> = {
         stock: existingProduct.stock + stockQuantity
-      });
+      };
+      
+      // Only update prices if they are different and provided
+      if (formData.costPrice && parseFloat(formData.costPrice) !== existingProduct.costPrice) {
+        updates.costPrice = parseFloat(formData.costPrice);
+      }
+      if (formData.sellPrice && parseFloat(formData.sellPrice) !== existingProduct.sellPrice) {
+        updates.sellPrice = parseFloat(formData.sellPrice);
+      }
+      
+      onUpdateProduct(existingProduct.id, updates);
+      toast.success(`Stok ${existingProduct.name} berhasil ditambah ${stockQuantity} unit!`);
     } else {
       // Add new product
       onAddProduct({
@@ -55,6 +67,7 @@ export const AddProductForm = ({ onAddProduct, onUpdateProduct, products, onClos
         category: formData.category || undefined,
         isPhotocopy: formData.isPhotocopy,
       });
+      toast.success(`Produk ${formData.name} berhasil ditambahkan!`);
     }
 
     setFormData({
@@ -99,14 +112,42 @@ export const AddProductForm = ({ onAddProduct, onUpdateProduct, products, onClos
                     id="name"
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      setFormData({ ...formData, name });
+                      
+                      // Auto-fill prices if product exists
+                      const existingProduct = products.find(p => 
+                        p.name.toLowerCase() === name.toLowerCase()
+                      );
+                      if (existingProduct && !formData.costPrice && !formData.sellPrice) {
+                        setFormData(prev => ({
+                          ...prev,
+                          name,
+                          costPrice: existingProduct.costPrice.toString(),
+                          sellPrice: existingProduct.sellPrice.toString(),
+                          category: existingProduct.category || ''
+                        }));
+                      }
+                    }}
                     placeholder="Masukkan nama produk"
                     required
+                    list="existing-products"
                   />
+                  <datalist id="existing-products">
+                    {products.map(product => (
+                      <option key={product.id} value={product.name} />
+                    ))}
+                  </datalist>
+                  {products.find(p => p.name.toLowerCase() === formData.name.toLowerCase()) && (
+                    <div className="mt-1 text-xs text-info">
+                      ℹ️ Produk sudah ada. Hanya menambah stok (harga opsional untuk update).
+                    </div>
+                  )}
                 </div>
                 
                 <div>
-                  <Label htmlFor="costPrice">Harga Kulakan *</Label>
+                  <Label htmlFor="costPrice">Harga Kulakan (opsional)</Label>
                   <Input
                     id="costPrice"
                     type="number"
@@ -115,12 +156,12 @@ export const AddProductForm = ({ onAddProduct, onUpdateProduct, products, onClos
                     placeholder="0"
                     min="0"
                     step="100"
-                    required
+                    required={!products.find(p => p.name.toLowerCase() === formData.name.toLowerCase())}
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="sellPrice">Harga Jual *</Label>
+                  <Label htmlFor="sellPrice">Harga Jual (opsional)</Label>
                   <Input
                     id="sellPrice"
                     type="number"
@@ -129,7 +170,7 @@ export const AddProductForm = ({ onAddProduct, onUpdateProduct, products, onClos
                     placeholder="0"
                     min="0"
                     step="100"
-                    required
+                    required={!products.find(p => p.name.toLowerCase() === formData.name.toLowerCase())}
                   />
                 </div>
                 

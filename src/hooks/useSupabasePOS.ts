@@ -163,7 +163,7 @@ export const useSupabasePOS = () => {
     }
   };
 
-  const processTransaction = async (cart: CartItem[], paymentMethod?: string, discount: number = 0): Promise<Receipt | null> => {
+  const processTransaction = async (cart: CartItem[], paymentMethod?: string, discount: number = 0, isManual: boolean = false): Promise<Receipt | null> => {
     if (!user || cart.length === 0) return null;
 
     try {
@@ -175,8 +175,10 @@ export const useSupabasePOS = () => {
         sum + ((item.finalPrice || item.product.sellPrice) - item.product.costPrice) * item.quantity, 0
       );
 
-      // Generate invoice number
-      const { data: invoiceNumber } = await supabase.rpc('generate_invoice_number');
+      // Generate invoice number using the new function
+      const { data: invoiceNumber } = await supabase.rpc('generate_invoice_number_v2', { 
+        is_manual: isManual 
+      });
 
       // Create receipt
       const { data: receiptData, error: receiptError } = await supabase
@@ -204,7 +206,8 @@ export const useSupabasePOS = () => {
         unit_price: item.finalPrice || item.product.sellPrice,
         cost_price: item.product.costPrice,
         total_price: (item.finalPrice || item.product.sellPrice) * item.quantity,
-        profit: ((item.finalPrice || item.product.sellPrice) - item.product.costPrice) * item.quantity
+        profit: ((item.finalPrice || item.product.sellPrice) - item.product.costPrice) * item.quantity,
+        final_price: item.finalPrice
       }));
 
       const { error: itemsError } = await supabase
@@ -213,10 +216,12 @@ export const useSupabasePOS = () => {
 
       if (itemsError) throw itemsError;
 
-      // Update product stock
-      for (const item of cart) {
-        const newStock = item.product.stock - item.quantity;
-        await updateProduct(item.product.id, { stock: newStock });
+      // Update product stock (only for non-manual transactions)
+      if (!isManual) {
+        for (const item of cart) {
+          const newStock = item.product.stock - item.quantity;
+          await updateProduct(item.product.id, { stock: newStock });
+        }
       }
 
       const receipt: Receipt = {
@@ -276,11 +281,15 @@ export const useSupabasePOS = () => {
   };
 
   const processTransactionWrapper = async (paymentMethod?: string, discount: number = 0): Promise<Receipt | null> => {
-    const receipt = await processTransaction(cart, paymentMethod, discount);
+    const receipt = await processTransaction(cart, paymentMethod, discount, false);
     if (receipt) {
       clearCart();
     }
     return receipt;
+  };
+
+  const processManualTransaction = async (cart: CartItem[], paymentMethod?: string, discount: number = 0): Promise<Receipt | null> => {
+    return await processTransaction(cart, paymentMethod, discount, true);
   };
 
   const formatPrice = (price: number): string => {
@@ -303,6 +312,7 @@ export const useSupabasePOS = () => {
     removeFromCart,
     clearCart,
     processTransaction: processTransactionWrapper,
+    processManualTransaction,
     formatPrice,
   };
 };

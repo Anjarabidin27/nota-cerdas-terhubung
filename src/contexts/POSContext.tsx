@@ -16,6 +16,7 @@ interface POSContextType {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   processTransaction: (paymentMethod?: string, discount?: number) => Receipt | null | Promise<Receipt | null>;
+  processManualTransaction?: (cart: CartItem[], paymentMethod?: string, discount?: number) => Promise<Receipt | null>;
   addManualReceipt: (receipt: Receipt) => void;
   formatPrice: (price: number) => string;
 }
@@ -40,6 +41,7 @@ export const POSProvider = ({ children }: { children: ReactNode }) => {
     ...currentPOS,
     receipts: allReceipts,
     addManualReceipt,
+    processManualTransaction: user ? supabasePOS.processManualTransaction : undefined,
   };
 
   return (

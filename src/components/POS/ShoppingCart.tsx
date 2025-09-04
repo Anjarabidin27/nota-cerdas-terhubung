@@ -29,6 +29,7 @@ interface ShoppingCartProps {
   receipts?: ReceiptType[];
   products?: Product[];
   onAddToCart?: (product: Product, quantity?: number) => void;
+  bluetoothConnected?: boolean;
 }
 
 export const ShoppingCart = ({
@@ -42,7 +43,8 @@ export const ShoppingCart = ({
   onViewReceipt,
   receipts = [],
   products = [],
-  onAddToCart
+  onAddToCart,
+  bluetoothConnected = false
 }: ShoppingCartProps) => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [discount, setDiscount] = useState(0);
@@ -76,6 +78,22 @@ export const ShoppingCart = ({
       setDiscountType('amount');
     }
   };
+
+  // Add keyboard shortcut for Enter key to process transaction
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && cart.length > 0 && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        // Only trigger if not typing in an input field
+        const activeElement = document.activeElement;
+        if (activeElement?.tagName !== 'INPUT' && activeElement?.tagName !== 'TEXTAREA') {
+          handleThermalPrint();
+        }
+      }
+    };
+
+    document.addEventListener('keypress', handleKeyPress);
+    return () => document.removeEventListener('keypress', handleKeyPress);
+  }, [cart, paymentMethod, discountAmount]);
 
   const handlePrintToReceipt = async () => {
     const receipt = await processTransaction(paymentMethod, discountAmount);

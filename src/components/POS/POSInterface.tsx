@@ -49,6 +49,7 @@ export const POSInterface = () => {
     removeFromCart,
     clearCart,
     processTransaction,
+    processManualTransaction,
     addManualReceipt,
     formatPrice,
   } = usePOSContext();
@@ -155,9 +156,6 @@ export const POSInterface = () => {
   };
 
   const handleManualInvoice = (receipt: ReceiptType) => {
-    // Add manual invoice to receipts
-    addManualReceipt(receipt);
-    
     // View the created receipt
     setSelectedReceipt(receipt);
     setCurrentTab('receipt');
@@ -485,6 +483,7 @@ Profit: ${formatPrice(receipt.profit)}
               receipts={receipts}
               onPrintReceipt={handlePrintThermal}
               products={products}
+              processManualTransaction={processManualTransaction}
             />
           </TabsContent>
 

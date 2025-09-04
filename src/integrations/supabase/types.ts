@@ -252,7 +252,7 @@ export type Database = {
         Returns: string
       }
       generate_invoice_number_v2: {
-        Args: { is_manual: boolean; tx_date?: string }
+        Args: { is_manual?: boolean; tx_date?: string }
         Returns: string
       }
       get_user_by_username_or_email: {

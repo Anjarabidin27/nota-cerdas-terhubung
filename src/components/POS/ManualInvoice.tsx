@@ -27,9 +27,10 @@ interface ManualInvoiceProps {
   receipts: ReceiptType[];
   onPrintReceipt?: (receipt: ReceiptType) => void;
   products: Product[];
+  processManualTransaction?: (cart: any[], paymentMethod?: string, discount?: number) => Promise<ReceiptType | null>;
 }
 
-export const ManualInvoice = ({ onCreateInvoice, formatPrice, receipts, onPrintReceipt, products }: ManualInvoiceProps) => {
+export const ManualInvoice = ({ onCreateInvoice, formatPrice, receipts, onPrintReceipt, products, processManualTransaction }: ManualInvoiceProps) => {
   const [items, setItems] = useState<ManualItem[]>([]);
   const [currentItem, setCurrentItem] = useState({
     name: '',
@@ -138,20 +139,11 @@ export const ManualInvoice = ({ onCreateInvoice, formatPrice, receipts, onPrintR
     : discount;
   const total = Math.max(0, subtotal - discountAmount);
 
-  const handleCreateInvoice = () => {
+  const handleCreateInvoice = async () => {
     if (items.length === 0) {
       toast.error('Tambahkan minimal satu item!');
       return;
     }
-
-    // Generate invoice ID
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = String(now.getFullYear()).slice(-2);
-    const dateStr = `${day}${month}${year}`;
-    const counter = receipts.length + 1;
-    const invoiceId = `MANUAL-${counter}${dateStr}`;
 
     // Convert manual items to cart items format
     const cartItems = items.map(item => ({
@@ -168,27 +160,46 @@ export const ManualInvoice = ({ onCreateInvoice, formatPrice, receipts, onPrintR
       finalPrice: item.isPhotocopy ? item.total : (item.unitPrice || 0)
     }));
 
-    const receipt: ReceiptType = {
-      id: invoiceId,
-      items: cartItems,
-      subtotal,
-      discount: discountAmount,
-      total,
-      profit: total, // All manual invoice income is profit since no cost
-      timestamp: new Date(),
-      paymentMethod
-    };
+    let receipt: ReceiptType | null = null;
 
-    onCreateInvoice(receipt);
+    if (processManualTransaction) {
+      // Use database transaction
+      receipt = await processManualTransaction(cartItems, paymentMethod, discountAmount);
+    } else {
+      // Fallback to local processing
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      const dateStr = `${day}${month}${year}`;
+      const counter = receipts.length + 1;
+      const invoiceId = `MNL-${counter}${dateStr}`;
+
+      receipt = {
+        id: invoiceId,
+        items: cartItems,
+        subtotal,
+        discount: discountAmount,
+        total,
+        profit: total, // All manual invoice income is profit since no cost
+        timestamp: new Date(),
+        paymentMethod
+      };
+    }
+
+    if (receipt) {
+      onCreateInvoice(receipt);
+      
+      // Reset form
+      setItems([]);
+      setCurrentItem({ name: '', quantity: 0, unitPrice: 0, isPhotocopy: false });
+      setCurrentPhotocopy({ productId: '', total: 0 });
+      setDiscount(0);
+      setPaymentMethod('cash');
+      
+      toast.success(`Nota manual ${receipt.id} berhasil dibuat dan disimpan ke database!`);
+    }
     
-    // Reset form
-    setItems([]);
-    setCurrentItem({ name: '', quantity: 0, unitPrice: 0, isPhotocopy: false });
-    setCurrentPhotocopy({ productId: '', total: 0 });
-    setDiscount(0);
-    setPaymentMethod('cash');
-    
-    toast.success(`Nota manual ${invoiceId} berhasil dibuat!`);
     return receipt;
   };
 
@@ -212,7 +223,7 @@ export const ManualInvoice = ({ onCreateInvoice, formatPrice, receipts, onPrintR
   };
 
   const handlePrintOnly = async () => {
-    const receipt = handleCreateInvoice();
+    const receipt = await handleCreateInvoice();
     if (!receipt) return;
 
     if (!isBluetoothConnected) {
@@ -236,7 +247,7 @@ export const ManualInvoice = ({ onCreateInvoice, formatPrice, receipts, onPrintR
   };
 
   const handlePrintInvoice = async () => {
-    const receipt = handleCreateInvoice();
+    const receipt = await handleCreateInvoice();
     if (!receipt) return;
 
     try {

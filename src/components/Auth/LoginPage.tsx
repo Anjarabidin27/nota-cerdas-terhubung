@@ -69,14 +69,27 @@ export const LoginPage = () => {
     setIsLoading(false);
   };
 
-  const handleAfterHoursAccess = (e: React.FormEvent) => {
+  const handleAfterHoursAccess = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (afterHoursPassword === '7654321') {
       setShowAfterHoursLogin(false);
       setAfterHoursPassword('');
       // Continue with normal login
-      handleSignIn(e);
+      setIsLoading(true);
+      setError('');
+
+      let result;
+      if (formData.email.includes('@')) {
+        result = await signIn(formData.email, formData.password);
+      } else {
+        result = await signInWithUsername(formData.email, formData.password);
+      }
+      
+      if (result.error) {
+        setError(result.error.message);
+      }
+      setIsLoading(false);
     } else {
       setError('Kata sandi akses di luar jam buka salah');
       setAfterHoursPassword('');
@@ -123,6 +136,19 @@ export const LoginPage = () => {
           <CardDescription>
             {showAfterHoursLogin ? 'Sistem tutup jam 17:00-06:00. Masukkan kata sandi akses:' : (showSignUp ? 'Buat akun baru untuk sistem kasir' : 'Masuk ke sistem kasir')}
           </CardDescription>
+          {!showAfterHoursLogin && !showSignUp && (
+            <div className="mt-2 p-2 bg-info/10 border border-info/20 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-info">
+                <span className="font-medium">⏰ Jam Operasional Sistem:</span>
+                <span>06:00 - 17:00 WIB (Senin - Minggu)</span>
+              </div>
+              {!isWithinBusinessHours() && (
+                <div className="mt-1 text-xs text-warning">
+                  ⚠️ Sistem saat ini dalam jam operasional. Sistem tutup jam 17:00-06:00
+                </div>
+              )}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {showAfterHoursLogin ? (
