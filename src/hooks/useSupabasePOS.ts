@@ -41,14 +41,14 @@ export const useSupabasePOS = () => {
 
   const loadProducts = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('products')
         .select('*')
         .order('name');
 
       if (error) throw error;
 
-      const formattedProducts: Product[] = data.map(item => ({
+      const formattedProducts: Product[] = data.map((item: any) => ({
         id: item.id,
         name: item.name,
         costPrice: Number(item.cost_price),
