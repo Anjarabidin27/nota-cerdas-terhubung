@@ -149,7 +149,7 @@ export const ManualInvoice = ({ onCreateInvoice, formatPrice, receipts, onPrintR
     // Convert manual items to cart items format
     const cartItems = items.map(item => ({
       product: {
-        id: item.id,
+        id: `manual-${item.id}`, // Prefix with 'manual-' to identify manual items
         name: item.name,
         costPrice: 0, // No cost price for manual items
         sellPrice: item.isPhotocopy ? item.total : (item.unitPrice || 0),
